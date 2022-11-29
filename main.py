@@ -1,10 +1,13 @@
 from tkinter import *
 import random
+from tkinter import messagebox
+
 from PIL import ImageTk, Image
 import keyboard
 
 x_pos = 4
 y_pos = 0
+score = 0
 
 game_grid = [
     [0, 0, 0, 0, 0],
@@ -37,18 +40,38 @@ def generate_map():
     gold_row = random.randint(0, 3)
     gold_column = random.randint(2, 4)
     block_type[gold_row][gold_column] = 1
+    lava = 0
     for row in range(5):
         for column in range(5):
             random_nr = random.randint(1, 10)
             if block_type[row][column] == 0 and row != 4 and column != 0:
-                if random_nr % 4 == 0:
+                if random_nr % 4 == 0 and lava < 4:
                     block_type[row][column] = 2
+                    lava += 1
                 elif random_nr == 9:
                     block_type[row][column] = 3
 
 
-def key_pressed(event):
-    global x_pos, y_pos
+def reset_game():
+    for row in range(5):
+        for column in range(5):
+            block_message[row][column] = 0
+            block_type[row][column] = 0
+            game_grid[row][column].configure(background='burlywood4', image='', borderwidth=1)
+
+    generate_map()
+    generate_block_messages()
+
+    global x_pos, y_pos, score
+    score = 0
+    x_pos = 4
+    y_pos = 0
+    score_lbl.configure(text="Score: " + str(score))
+    game_grid[x_pos][y_pos].configure(borderwidth=3, image=msg_to_pic(block_message[x_pos][y_pos]))
+
+
+def key_pressed(event, window, score_lbl):
+    global x_pos, y_pos, score
     if event.char == "w":
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if x_pos > 0:
@@ -67,6 +90,26 @@ def key_pressed(event):
             y_pos = y_pos - 1
 
     game_grid[x_pos][y_pos].configure(borderwidth=3, image=msg_to_pic(block_message[x_pos][y_pos]))
+    if block_type[x_pos][y_pos] == 2:
+        resp = messagebox.askquestion('Game Over', 'Do you want to play again?')
+        if resp == 'no':
+            window.after(1000, lambda: window.destroy())
+        else:
+            reset_game()
+    elif block_type[x_pos][y_pos] == 1:
+        score += 100
+        score_lbl.configure(text="Score: " + str(score))
+        resp = messagebox.askquestion('You found the gold! Score: ' + str(score), 'Do you want to play again?')
+        if resp == 'no':
+            window.after(1000, lambda: window.destroy())
+        else:
+            reset_game()
+    elif block_type[x_pos][y_pos] == 3:
+        score -= 15
+        score_lbl.configure(text="Score: " + str(score))
+    else:
+        score -= 5
+        score_lbl.configure(text="Score: " + str(score))
 
 
 def create_start_window():
@@ -77,7 +120,7 @@ def create_start_window():
     window.configure(background='#84c497')
     window_title = Label(text="Dig for gold!", font=('consolas', 30), background='#84c497')
     window_title.pack(side=TOP)
-    window.bind("<Key>", key_pressed)
+    window.bind("<Key>", lambda e: key_pressed(e, window, score_lbl))
     return window
 
 
@@ -163,5 +206,8 @@ if __name__ == "__main__":
     empty_msg_img = ImageTk.PhotoImage(Image.open("empty_message.png").resize((150, 100), Image.Resampling.LANCZOS))
 
     game_grid[x_pos][y_pos].configure(borderwidth=3, image=msg_to_pic(block_message[x_pos][y_pos]))
+
+    score_lbl = Label(text="Score: 0", font=('consolas', 30), background='#84c497')
+    score_lbl.pack(side=BOTTOM)
 
     window.mainloop()
