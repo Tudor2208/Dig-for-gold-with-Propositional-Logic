@@ -1,6 +1,11 @@
 from tkinter import *
 import random
 from tkinter import messagebox
+from nltk.test.inference_fixt import setup_module
+from nltk import *
+from nltk.sem.drt import DrtParser
+from nltk.sem import logic
+from nltk.sem import Expression
 
 from PIL import ImageTk, Image
 import keyboard
@@ -97,7 +102,7 @@ def key_pressed(event, window, score_lbl):
         else:
             reset_game()
     elif block_type[x_pos][y_pos] == 1:
-        score += 100
+        score += 500
         score_lbl.configure(text="Score: " + str(score))
         resp = messagebox.askquestion('You found the gold! Score: ' + str(score), 'Do you want to play again?')
         if resp == 'no':
@@ -211,3 +216,5 @@ if __name__ == "__main__":
     score_lbl.pack(side=BOTTOM)
 
     window.mainloop()
+
+
