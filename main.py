@@ -39,6 +39,16 @@ block_message = [
     [0, 0, 0, 0, 0]
 ]
 
+read_expr = Expression.fromstring
+p1 = read_expr('adjacent(x1, y1, x2, y2) <-> (x1=x2+1 & y1=y2) | (x2=x1+1 & y1=y2) | (x1=x2 & y1=y2+1) | (x1=x2 & y2=y1+1)')
+p2 = read_expr('all x1 all y1 (heat(x1, y1) <-> exists x2 y2(lava(x2, y2) & adjacent(x1, y1, x2, y2)))')
+p3 = read_expr('all x1 all y1 (gas_nearby(x1, y1) <-> exists x2 y2(gas(x2, y2) & adjacent(x1, y1, x2, y2)))')
+p4 = read_expr('all x1 all y1 (empty(x1, y1) <-> -exists x2 y2((lava(x2, y2) | gas(x2, y2)) & adjacent(x1, y1, x2, y2)))')
+p5 = read_expr('all x1 all y1 (heat(x1, y1) -> -gas(x1, y1) & -empty(x1, y1))')
+p6 = read_expr('all x1 all y1 (gas(x1, y1) -> -heat(x1, y1) & -empty(x1, y1))')
+p7 = read_expr('all x1 all y1 (empty(x1, y1) -> -gas(x1, y1) & -heat(x1, y1))')
+rules = [p1, p2, p3, p4, p5, p6, p7]
+assumptions = []
 
 def generate_map():
     # choose gold position
@@ -66,6 +76,8 @@ def reset_game():
 
     generate_map()
     generate_block_messages()
+    assumptions.clear()
+    assumptions.extend(rules)
 
     global x_pos, y_pos, score
     score = 0
@@ -93,8 +105,34 @@ def key_pressed(event, window, score_lbl):
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if y_pos > 0:
             y_pos = y_pos - 1
+    elif event.char == 'c':
+        g1 = read_expr('-gas(' + str(x_pos - 1) + ',' + str(y_pos) + ') & -lava(' + str(x_pos - 1) + ',' + str(
+            y_pos) + ')')  # UP is safe
+        g2 = read_expr('-gas(' + str(x_pos + 1) + ',' + str(y_pos) + ') & -lava(' + str(x_pos + 1) + ',' + str(
+            y_pos) + ')')  # DOWN is safe
+        g3 = read_expr('-gas(' + str(x_pos) + ',' + str(y_pos - 1) + ') & -lava(' + str(x_pos) + ',' + str(
+            y_pos - 1) + ')')  # LEFT is safe
+        g4 = read_expr('-gas(' + str(x_pos) + ',' + str(y_pos + 1) + ') & -lava(' + str(x_pos) + ',' + str(
+            y_pos + 1) + ')')  # RIGHT is safe
 
-    game_grid[x_pos][y_pos].configure(borderwidth=3, image=msg_to_pic(block_message[x_pos][y_pos]))
+        print("UP: " + str(Prover9().prove(g1, assumptions)))
+        print("DOWN: " + str(Prover9().prove(g2, assumptions)))
+        print("LEFT: " + str(Prover9().prove(g3, assumptions)))
+        print("RIGHT: " + str(Prover9().prove(g4, assumptions)))
+        print("\n")
+
+    my_image = msg_to_pic(block_message[x_pos][y_pos])
+    game_grid[x_pos][y_pos].configure(borderwidth=3, image=my_image)
+    if my_image == gas_msg_img:
+        assumptions.append(read_expr('gas_nearby('+str(x_pos)+','+str(y_pos)+')'))
+    elif my_image == heat_msg_img:
+        assumptions.append(read_expr('heat(' + str(x_pos) + ',' + str(y_pos) + ')'))
+    elif my_image == heat_gas_msg_img:
+        assumptions.append(read_expr('heat(' + str(x_pos) + ',' + str(y_pos) + ')'))
+        assumptions.append(read_expr('gas_nearby(' + str(x_pos) + ',' + str(y_pos) + ')'))
+    elif my_image == empty_msg_img:
+        assumptions.append(read_expr('empty(' + str(x_pos) + ',' + str(y_pos) + ')'))
+
     if block_type[x_pos][y_pos] == 2:
         resp = messagebox.askquestion('Game Over', 'Do you want to play again?')
         if resp == 'no':
@@ -200,6 +238,7 @@ if __name__ == "__main__":
 
     generate_map()
     generate_block_messages()
+    assumptions.extend(rules)
 
     gold_img = ImageTk.PhotoImage(Image.open("gold.png").resize((150, 100), Image.Resampling.LANCZOS))
     lava_img = ImageTk.PhotoImage(Image.open("lava.png").resize((150, 100), Image.Resampling.LANCZOS))
