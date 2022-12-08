@@ -10,10 +10,15 @@ from nltk.sem import Expression
 from PIL import ImageTk, Image
 import keyboard
 
+extra_lives = 0
+dynamite = 1
+highscore = 0
+
 x_pos = 4
 y_pos = 0
 score = 0
-safe_pos_string = "Safe positions: "
+level = 1
+safe_pos_string = "Safe moves: "
 
 game_grid = [
     [0, 0, 0, 0, 0],
@@ -68,7 +73,10 @@ def generate_map():
         for column in range(5):
             random_nr = random.randint(1, 10)
             if block_type[row][column] == 0 and row != 4 and column != 0:
-                if random_nr % 4 == 0 and lava < 5:
+                if random_nr % 4 == 0 and lava < 4 and level < 3:
+                    block_type[row][column] = 2
+                    lava += 1
+                elif random_nr % 4 == 0 or random_nr % 5 == 0 and lava < 6:
                     block_type[row][column] = 2
                     lava += 1
                 elif random_nr == 9:
@@ -88,18 +96,16 @@ def reset_game():
     assumptions.extend(rules)
 
     global x_pos, y_pos, score, safe_pos_string
-    score = 0
     x_pos = 4
     y_pos = 0
-    score_lbl.configure(text="Score: " + str(score))
     game_grid[x_pos][y_pos].configure(borderwidth=3, image=msg_to_pic(block_message[x_pos][y_pos]))
 
     safe_pos_lbl.configure(text=safe_pos_string)
-    safe_pos_string = "Safe positions: "
+    safe_pos_string = "Safe moves: "
 
 
 def key_pressed(event, window, score_lbl):
-    global x_pos, y_pos, score, safe_pos_string
+    global x_pos, y_pos, score, safe_pos_string, level, extra_lives, dynamite, highscore
     if event.char == "w":
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if x_pos > 0:
@@ -116,6 +122,18 @@ def key_pressed(event, window, score_lbl):
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if y_pos > 0:
             y_pos = y_pos - 1
+    elif event.char == "x":
+        if dynamite > 0:
+            resp = messagebox.askquestion('Dynamite available: ' + str(dynamite), 'Are you sure you want to use the dynamite?\n-> -1 dynamite\n-> -50 score')
+            if resp == 'yes':
+                dynamite -= 1
+                score -= 50
+                score_lbl.configure(text="Score: " + str(score))
+                neigh = get_neighbours(x_pos, y_pos)
+                for x, y in neigh:
+                    game_grid[x][y].configure(borderwidth=1, image=msg_to_pic(block_message[x][y]))
+        else:
+            messagebox.showwarning('', 'You do not have any dynamite!')
 
     my_image = msg_to_pic(block_message[x_pos][y_pos])
     game_grid[x_pos][y_pos].configure(borderwidth=3, image=my_image)
@@ -130,22 +148,83 @@ def key_pressed(event, window, score_lbl):
         assumptions.append(read_expr('E' + str(x_pos) + str(y_pos)))
 
     if block_type[x_pos][y_pos] == 2:
-        resp = messagebox.askquestion('Game Over', 'Do you want to play again?')
-        if resp == 'no':
-            window.after(1000, lambda: window.destroy())
+        if extra_lives == 0:
+            resp = messagebox.askquestion('Game Over', 'Do you want to play again?')
+            if resp == 'no':
+                window.after(1000, lambda: window.destroy())
+            else:
+                reset_game()
+                score = 0
+                level = 1
+                extra_lives = 0
+                level_lbl.configure(text="Level " + str(level))
+                score_lbl.configure(text="Score: " + str(score))
         else:
-            reset_game()
+            extra_lives -= 1
+            messagebox.showinfo("INFO", "Extra lives: " + str(extra_lives))
+
     elif block_type[x_pos][y_pos] == 1:
-        score += 500
+        score += 200
         score_lbl.configure(text="Score: " + str(score))
-        resp = messagebox.askquestion('You found the gold! Congratulations!', 'Do you want to play again?')
-        if resp == 'no':
-            window.after(1000, lambda: window.destroy())
-        else:
+        if level < 3:
+            level += 1
+            if level == 2:
+                messagebox.showwarning("Level Up! New level: " + str(level), "The gas will kill you now\nBe careful!")
+            if level == 3:
+                messagebox.showwarning("Level Up! New level: " + str(level), "There will be more lava now\nBe careful!")
+            nr = random.randint(1, 10)
+            if nr % 2 == 0:
+                messagebox.showinfo("Special Gift!", "You received:\n-> +100 score")
+                score += 100
+                score_lbl.configure(text="Score: " + str(score))
+            elif nr % 7 == 0:
+                messagebox.showinfo("Special Gift!", "You received:\n-> 1 extra life\n-> +100 score")
+                extra_lives += 1
+                score += 100
+                score_lbl.configure(text="Score: " + str(score))
+            elif nr % 3 == 0:
+                messagebox.showinfo("Special Gift!", "You received:\n-> 1 extra life")
+                extra_lives += 1
+            elif nr == 1:
+                messagebox.showinfo("Special Gift!", "You received:\n-> 1 dynamite")
+                dynamite += 1
+
             reset_game()
+            level_lbl.configure(text="Level " + str(level))
+        else:
+            if score > highscore:
+                highscore = score
+            resp = messagebox.askquestion('Congrats! You have found all gold', 'Do you want to play again?\nHIGHSCORE: ' + str(highscore))
+            if resp == 'no':
+                window.after(1000, lambda: window.destroy())
+            else:
+                level = 1
+                dynamite = 1
+                score = 0
+                extra_lives = 0
+                reset_game()
+                level_lbl.configure(text="Level " + str(level))
+                score_lbl.configure(text="Score: " + str(score))
+
     elif block_type[x_pos][y_pos] == 3:
-        score -= 15
-        score_lbl.configure(text="Score: " + str(score))
+        if level == 1:
+            score -= 20
+            score_lbl.configure(text="Score: " + str(score))
+        else:
+            if extra_lives == 0:
+                resp = messagebox.askquestion('Game Over', 'Do you want to play again?')
+                if resp == 'no':
+                    window.after(1000, lambda: window.destroy())
+                else:
+                    reset_game()
+                    level = 1
+                    dynamite = 1
+                    score = 0
+                    level_lbl.configure(text="Level " + str(level))
+                    score_lbl.configure(text="Score: " + str(score))
+            else:
+                extra_lives -= 1
+                messagebox.showinfo("INFO", "Extra lives: " + str(extra_lives))
     else:
         score -= 5
         score_lbl.configure(text="Score: " + str(score))
@@ -177,13 +256,13 @@ def key_pressed(event, window, score_lbl):
             safe_pos_string += "LEFT"
 
     safe_pos_lbl.configure(text=safe_pos_string)
-    safe_pos_string = "Safe positions: "
+    safe_pos_string = "Safe moves: "
 
 
 def create_start_window():
     window = Tk()
     window.title("Gold-digging game")
-    window.geometry("800x650")
+    window.geometry("820x700")
     window.resizable(False, False)
     window.configure(background='#84c497')
     window_title = Label(text="Dig for gold!", font=('consolas', 30), background='#84c497')
@@ -304,8 +383,11 @@ if __name__ == "__main__":
         safe_pos_string += "RIGHT "
 
     safe_pos_lbl = Label(text=safe_pos_string, font=('consolas', 25), background='#84c497', fg='#5534eb')
-    safe_pos_string = "Safe positions: "
+    safe_pos_string = "Safe moves: "
     safe_pos_lbl.pack(side=BOTTOM)
+
+    level_lbl = Label(text="Level " + str(level), font=('consolas', 25), background='#84c497', fg='#bd5424')
+    level_lbl.pack(side=BOTTOM)
 
     window.mainloop()
 
