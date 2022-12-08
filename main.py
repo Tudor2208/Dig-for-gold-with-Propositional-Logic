@@ -6,7 +6,7 @@ from nltk import *
 from nltk.sem.drt import DrtParser
 from nltk.sem import logic
 from nltk.sem import Expression
-
+from playsound import playsound
 from PIL import ImageTk, Image
 import keyboard
 
@@ -110,18 +110,27 @@ def key_pressed(event, window, score_lbl):
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if x_pos > 0:
             x_pos = x_pos - 1
+            score -= 5
+            score_lbl.configure(text="Score: " + str(score))
     elif event.char == "s":
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if x_pos < 4:
             x_pos = x_pos + 1
+            score -= 5
+            score_lbl.configure(text="Score: " + str(score))
     elif event.char == "d":
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if y_pos < 4:
             y_pos = y_pos + 1
+            score -= 5
+            score_lbl.configure(text="Score: " + str(score))
     elif event.char == "a":
         game_grid[x_pos][y_pos].configure(borderwidth=1)
         if y_pos > 0:
             y_pos = y_pos - 1
+            score -= 5
+            score_lbl.configure(text="Score: " + str(score))
+
     elif event.char == "x":
         if dynamite > 0:
             resp = messagebox.askquestion('Dynamite available: ' + str(dynamite), 'Are you sure you want to use the dynamite?\n-> -1 dynamite\n-> -50 score')
@@ -132,6 +141,7 @@ def key_pressed(event, window, score_lbl):
                 neigh = get_neighbours(x_pos, y_pos)
                 for x, y in neigh:
                     game_grid[x][y].configure(borderwidth=1, image=msg_to_pic(block_message[x][y]))
+                playsound("dynamite_sound.mp3")
         else:
             messagebox.showwarning('', 'You do not have any dynamite!')
 
@@ -192,6 +202,7 @@ def key_pressed(event, window, score_lbl):
             reset_game()
             level_lbl.configure(text="Level " + str(level))
         else:
+            playsound("win_sound.mp3")
             if score > highscore:
                 highscore = score
             resp = messagebox.askquestion('Congrats! You have found all gold', 'Do you want to play again?\nHIGHSCORE: ' + str(highscore))
@@ -225,9 +236,6 @@ def key_pressed(event, window, score_lbl):
             else:
                 extra_lives -= 1
                 messagebox.showinfo("INFO", "Extra lives: " + str(extra_lives))
-    else:
-        score -= 5
-        score_lbl.configure(text="Score: " + str(score))
 
     x_1 = x_pos - 1
     x_1_plus = x_pos + 1
