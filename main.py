@@ -1,14 +1,10 @@
 from tkinter import *
 import random
 from tkinter import messagebox
-from nltk.test.inference_fixt import setup_module
 from nltk import *
-from nltk.sem.drt import DrtParser
-from nltk.sem import logic
 from nltk.sem import Expression
 from playsound import playsound
 from PIL import ImageTk, Image
-import keyboard
 
 extra_lives = 0
 dynamite = 1
@@ -195,7 +191,7 @@ def key_pressed(event, window, score_lbl):
             elif nr % 3 == 0:
                 messagebox.showinfo("Special Gift!", "You received:\n-> 1 extra life")
                 extra_lives += 1
-            elif nr == 1:
+            else:
                 messagebox.showinfo("Special Gift!", "You received:\n-> 1 dynamite")
                 dynamite += 1
 
@@ -219,7 +215,7 @@ def key_pressed(event, window, score_lbl):
 
     elif block_type[x_pos][y_pos] == 3:
         if level == 1:
-            score -= 20
+            score -= 30
             score_lbl.configure(text="Score: " + str(score))
         else:
             if extra_lives == 0:
